@@ -19,6 +19,7 @@ interface AudioTrackProps {
   activeTrackId: string;
   onPlay: (id: string) => void;
   onStop: () => void;
+  roles?: Record<string, string>;
 }
 
 const NUM_BARS = 150;
@@ -99,7 +100,7 @@ export function stopCurrentTrack() {
   if (onStopCallback) onStopCallback();
 }
 
-export function AudioTrack({ src, title, isHls = false, text, activeTrackId, onPlay, onStop }: AudioTrackProps) {
+export function AudioTrack({ src, title, isHls = false, text, activeTrackId, onPlay, onStop, roles }: AudioTrackProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const barsRef = useRef<HTMLDivElement>(null);
@@ -523,12 +524,9 @@ export function AudioTrack({ src, title, isHls = false, text, activeTrackId, onP
                   const cn = isDlg ? line.slice(0, ci).trim() : null;
                   const dt = isDlg ? line.slice(ci + 1).trim() : line.trim();
                   let cc = c.textMuted;
-                  if (cn === "Kara") cc = "#818cf8";
-                  else if (cn === "Martin") cc = "#38bdf8";
-                  else if (cn === "Mum" || cn === "Janet") cc = "#fb923c";
-                  else if (cn === "Howard") cc = "#c084fc";
-                  else if (cn === "John" || cn === "Boy") cc = "#f87171";
-                  else if (cn && (cn.includes("voice") || cn.includes("Ghost"))) cc = c.isDark ? "rgba(226,232,240,0.35)" : "rgba(30,41,59,0.35)";
+                  if (cn && roles) {
+                    cc = roles[cn] ?? c.textMuted;
+                  }
                   return (
                     <p key={i} className="text-xs sm:text-sm leading-relaxed" style={{ marginBottom: i < lines.length - 1 ? "8px" : "0", color: c.textBody }}>
                       {isDlg ? (

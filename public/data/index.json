@@ -3,6 +3,39 @@
     "id": "owl-hall",
     "title": "Owl Hall",
     "description": "A thrilling audio drama about Kara, her brother Martin, and their mother who arrive at a mysterious holiday home called Owl Hall.",
-    "episodes": 13
+    "episodes": 13,
+    "roles": {
+      "Kara": "#818cf8",
+      "Martin": "#38bdf8",
+      "Mum": "#fb923c",
+      "Janet": "#fb923c",
+      "Howard": "#c084fc",
+      "John": "#f87171",
+      "Boy": "#f87171",
+      "Ghostly voice": "rgba(226,232,240,0.35)",
+      "Narrator": "#a3e635"
+    }
+  },
+  {
+    "id": "katie_1",
+    "title": "Katie 1",
+    "description": "A soap opera about moving, relationships, and work. Follow Katie as she leaves her boyfriend Mark in London and moves to California to start a new life with her cousin Sal.",
+    "episodes": 15,
+    "roles": {
+      "KATIE": "#f472b6",
+      "MARK": "#38bdf8",
+      "SAL": "#818cf8",
+      "RICH": "#fb923c",
+      "CHRIS": "#a3e635",
+      "MANAGER": "#c084fc",
+      "BOYS": "#94a3b8",
+      "ANNOUNCER": "#94a3b8",
+      "CHECK-IN ATT.": "#94a3b8",
+      "CUSTOMER 1": "#94a3b8",
+      "MM": "#facc15",
+      "LA": "#94a3b8",
+      "CO": "#94a3b8",
+      "DIR": "#facc15"
+    }
   }
 ]

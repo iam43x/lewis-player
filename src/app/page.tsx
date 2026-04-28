@@ -130,6 +130,7 @@ export default function Home() {
                   activeTrackId={activeTrackId}
                   onPlay={handlePlay}
                   onStop={handleStop}
+                  roles={workMeta?.roles}
                 />
               ))}
             </div>
