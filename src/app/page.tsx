@@ -103,7 +103,7 @@ export default function Home() {
               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
               style={{ backgroundColor: c.accent }}
             >
-              <Music className="w-4 h-4 text-white" />
+              <Music className="w-4 h-4" style={{ color: c.icon }} />
             </div>
             <h1 className="text-base sm:text-lg font-bold truncate" style={{ color: c.text }}>
               {workMeta?.title || activeWork}
@@ -153,7 +153,7 @@ export default function Home() {
             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
             style={{ backgroundColor: c.accent }}
           >
-            <Headphones className="w-4 h-4 text-white" />
+            <Headphones className="w-4 h-4" style={{ color: c.icon }} />
           </div>
           <h1 className="text-base sm:text-lg font-bold truncate" style={{ color: c.text }}>
             Audio Library

@@ -6,7 +6,6 @@ import {
   useEffect,
   useCallback,
   useMemo,
-  useSyncExternalStore,
 } from "react";
 import WaveSurfer from "wavesurfer.js";
 import { BookOpen, ChevronDown, ChevronUp } from "lucide-react";
@@ -19,7 +18,7 @@ interface AudioTrackProps {
   activeTrackId: string;
   onPlay: (id: string) => void;
   onStop: () => void;
-  roles?: Record<string, string>;
+  roles?: Record<string, string | undefined>;
 }
 
 const SPEED_OPTIONS = [0.5, 0.75, 1];
@@ -31,10 +30,6 @@ function formatTime(seconds: number): string {
   const s = Math.floor(seconds % 60);
   return m + ":" + s.toString().padStart(2, "0");
 }
-
-// Shared theme state via module-level store + useSyncExternalStore
-const THEME_EVENT = "theme-change";
-
 
 // Singleton — only one track can play at a time
 let currentPlayingId: string | null = null;
@@ -69,14 +64,13 @@ export function AudioTrack({ src, title, text, activeTrackId, onPlay, onStop, ro
 
     const ws = WaveSurfer.create({
       container: containerRef.current,
-      height: 46,
-      waveColor: c.accent,
-      progressColor: c.accentSoft,
-      cursorColor: "transparent",
+      height: 36,
+      waveColor: c.textSoft,
+      progressColor: c.accent,
       cursorWidth: 0,
       barWidth: 4,
       barGap: 1,
-      barRadius: 3,
+      barRadius: 4,
       normalize: true,
       fillParent: true,
       hideScrollbar: true,
@@ -115,9 +109,9 @@ export function AudioTrack({ src, title, text, activeTrackId, onPlay, onStop, ro
   useEffect(() => {
     if (!wsRef.current) return;
     wsRef.current.setOptions({
-      progressColor: c.accentSoft,
+      waveColor: c.textSoft,
     });
-  }, [c.accentSoft]);
+  }, [c.textSoft]);
 
   // Register stop callback (singleton)
   useEffect(() => {
@@ -181,9 +175,9 @@ export function AudioTrack({ src, title, text, activeTrackId, onPlay, onStop, ro
     <div
       className="rounded-2xl overflow-hidden transition-all duration-300"
       style={{
-        backgroundColor: isActive ? c.surfaceHover : c.surface,
+        backgroundColor: isActive ? c.bg : c.surface,
         border: "1px solid " + c.border,
-        boxShadow: isActive ? "0 0 0 1px " + c.accent + "15, 0 4px 20px " + c.accent + "10" : undefined,
+        boxShadow: isActive ? "0 0 0 1px " + c.accentMuted + "15, 0 4px 20px " + c.accentMuted + "10" : undefined,
       }}
     >
       {/* Title row */}
@@ -198,11 +192,11 @@ export function AudioTrack({ src, title, text, activeTrackId, onPlay, onStop, ro
           aria-label={playing ? "Pause" : "Play"}
         >
           {loading ? (
-            <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: playing ? "rgba(255,255,255,0.3)" : c.textMuted, borderTopColor: playing ? "#fff" : c.accent }} />
+            <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: playing ? c.chrome : c.textMuted, borderTopColor: c.accent }} />
           ) : playing ? (
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <rect x="3" y="2" width="5" height="16" rx="1.5" fill="white" />
-              <rect x="12" y="2" width="5" height="16" rx="1.5" fill="white" />
+              <rect x="3" y="2" width="5" height="16" rx="1.5" fill={c.icon} />
+              <rect x="12" y="2" width="5" height="16" rx="1.5" fill={c.icon} />
             </svg>
           ) : (
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -221,8 +215,8 @@ export function AudioTrack({ src, title, text, activeTrackId, onPlay, onStop, ro
                 className="px-2 py-0.5 text-[10px] font-semibold rounded-md cursor-pointer transition-all duration-150"
                 style={
                   speed === sp
-                    ? { backgroundColor: c.accent, color: "#fff", boxShadow: "0 1px 6px " + c.accent + "40" }
-                    : { backgroundColor: c.inset, color: c.textSoft }
+                    ? { backgroundColor: c.accent, color: c.icon, boxShadow: "0 1px 6px " + c.accentMuted }
+                    : { backgroundColor: c.bg, color: c.textSoft }
                 }
               >
                 {SPEED_LABELS[sp]}
@@ -236,7 +230,7 @@ export function AudioTrack({ src, title, text, activeTrackId, onPlay, onStop, ro
                 chSpeed(SPEED_OPTIONS[(idx + 1) % SPEED_OPTIONS.length]);
               }}
               className="px-2.5 py-1 text-xs font-semibold rounded-lg cursor-pointer"
-              style={{ backgroundColor: c.accent, color: "#fff" }}
+              style={{ backgroundColor: c.accent, color: c.icon }}
             >
               {SPEED_LABELS[speed]}
             </span>
@@ -262,7 +256,7 @@ export function AudioTrack({ src, title, text, activeTrackId, onPlay, onStop, ro
 
       {error && (
         <div className="px-4 pb-2.5">
-          <p className="text-xs rounded-lg px-3 py-2" style={{ color: "#fb7185", backgroundColor: "rgba(251,113,133,0.08)" }}>
+          <p className="text-xs rounded-lg px-3 py-2" style={{ color: c.error, backgroundColor: c.errorSoft }}>
             Not able to load audio
           </p>
         </div>
@@ -275,7 +269,7 @@ export function AudioTrack({ src, title, text, activeTrackId, onPlay, onStop, ro
             ref={toggleRef}
             onClick={() => setShowText(!showText)}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium transition-colors"
-            style={{ color: showText ? c.accent : c.textSoft, backgroundColor: showText ? c.accentSoft : "transparent" }}
+            style={{ color: showText ? c.accent : c.textSoft, backgroundColor: showText ? c.accentSoft : c.bg }}
           >
             <BookOpen className="w-3.5 h-3.5" />
             <span>{showText ? "Hide text" : "Show text"}</span>
@@ -285,9 +279,9 @@ export function AudioTrack({ src, title, text, activeTrackId, onPlay, onStop, ro
           {showText && (
             <div
               className="px-4 pt-4 pb-4 overflow-y-auto"
-              style={{ maxHeight: textMaxH + "px", scrollbarWidth: "thin", scrollbarColor: c.accent + "40 transparent" }}
+              style={{ maxHeight: textMaxH + "px", scrollbarWidth: "thin", scrollbarColor: c.accentMuted + " " + c.bg }}
             >
-              <div className="rounded-xl p-4 sm:p-5" style={{ backgroundColor: c.inset, border: "1px solid " + c.border }}>
+              <div className="rounded-xl p-4 sm:p-5" style={{ backgroundColor: c.bg, border: "1px solid " + c.border }}>
                 {lines.map((line, i) => {
                   const ci = line.indexOf(":");
                   const isDlg = ci > 0 && ci < 30;

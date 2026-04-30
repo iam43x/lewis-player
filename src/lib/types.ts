@@ -14,5 +14,5 @@ export interface WorkItem {
   title: string;
   description: string;
   episodes: number;
-  roles?: Record<string, string>;
+  roles?: Record<string, string | undefined>;
 }

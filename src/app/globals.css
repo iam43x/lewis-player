@@ -31,10 +31,10 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(129,140,248,0.25);
+    background: var(--scrollbar);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(129,140,248,0.4);
+    background: var(--scrollbar-hover);
   }
 }
