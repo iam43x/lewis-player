@@ -37,5 +37,29 @@
       "CO": "#94a3b8",
       "DIR": "#facc15"
     }
+  },
+  {
+    "id": "katie_2",
+    "title": "Katie 2",
+    "description": "The continuation of Katie's story in California. Follow Katie as she navigates new relationships with Michael, Sal's wedding plans, and life-changing decisions about her future.",
+    "episodes": 17,
+    "roles": {
+      "KATIE": "#f472b6",
+      "SAL": "#818cf8",
+      "RICH": "#fb923c",
+      "MM": "#a3e635",
+      "SHARON": "#c084fc",
+      "MARK": "#38bdf8",
+      "CANDY": "#facc15",
+      "CHUCK": "#f87171",
+      "CUSTOMER": "#94a3b8",
+      "SA": "#94a3b8",
+      "ASST": "#94a3b8",
+      "PO": "#94a3b8",
+      "OFFICIAL": "#94a3b8",
+      "GIRL 1": "#94a3b8",
+      "GIRL 2": "#94a3b8",
+      "GG": "#94a3b8"
+    }
   }
 ]
