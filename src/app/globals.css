@@ -11,6 +11,19 @@
   --radius: 0.625rem;
 }
 
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-sheet {
+  animation: sheet-up 0.25s ease-out;
+}
+
 @layer base {
   * {
     border-color: transparent;
