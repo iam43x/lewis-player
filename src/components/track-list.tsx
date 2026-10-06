@@ -40,12 +40,6 @@ export const TrackList = memo(function TrackList({
             aria-current={isActive ? "true" : undefined}
           >
             <span
-              className="w-6 shrink-0 text-xs tabular-nums text-right font-medium"
-              style={{ color: isActive ? c.accent : c.textSoft }}
-            >
-              {String(i + 1).padStart(2, "0")}
-            </span>
-            <span
               className="flex-1 min-w-0 text-sm font-medium truncate"
               style={{ color: isActive ? c.accent : c.text }}
             >
