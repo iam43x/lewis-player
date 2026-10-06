@@ -25,6 +25,8 @@ export interface TrackPlayerHandle {
 interface TrackPlayerProps {
   src: string;
   title: string;
+  /** Intro skip in milliseconds */
+  startMs?: number;
   hasText: boolean;
   textOpen: boolean;
   onToggleText: () => void;
@@ -36,6 +38,7 @@ interface TrackPlayerProps {
 export function TrackPlayer({
   src,
   title,
+  startMs,
   hasText,
   textOpen,
   onToggleText,
@@ -59,6 +62,8 @@ export function TrackPlayer({
 
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
+  const startMsRef = useRef(startMs ?? 0);
+  startMsRef.current = startMs ?? 0;
 
   useEffect(() => {
     if (!containerRef.current || !src) return;
@@ -96,7 +101,14 @@ export function TrackPlayer({
       readyRef.current = true;
       const d = ws.getDuration();
       setDur(d);
-      onProgressRef.current(ws.getCurrentTime(), d);
+      const startSec = (startMsRef.current || 0) / 1000;
+      if (startSec > 0 && d > startSec) {
+        ws.setTime(startSec);
+        setCurTime(startSec);
+        onProgressRef.current(startSec, d);
+      } else {
+        onProgressRef.current(ws.getCurrentTime(), d);
+      }
       if (wantPlayRef.current) {
         wantPlayRef.current = false;
         ws.play().catch(() => {});
@@ -146,23 +158,31 @@ export function TrackPlayer({
     }
   }, [playNonce]);
 
+  const startPlayback = useCallback(() => {
+    if (!wsRef.current || !readyRef.current) return;
+    const startSec = (startMsRef.current || 0) / 1000;
+    if (startSec > 0 && wsRef.current.getCurrentTime() < 0.5) {
+      wsRef.current.setTime(startSec);
+    }
+    wantPlayRef.current = false;
+    wsRef.current.play().catch(() => {});
+  }, []);
+
   const toggle = useCallback(() => {
     if (!wsRef.current || loading || error) return;
     if (wsRef.current.isPlaying()) {
       wsRef.current.pause();
     } else {
-      wantPlayRef.current = false;
-      wsRef.current.play().catch(() => {});
+      startPlayback();
     }
-  }, [loading, error]);
+  }, [loading, error, startPlayback]);
 
   const play = useCallback(() => {
     if (!wsRef.current || loading || error) return;
     if (!wsRef.current.isPlaying()) {
-      wantPlayRef.current = false;
-      wsRef.current.play().catch(() => {});
+      startPlayback();
     }
-  }, [loading, error]);
+  }, [loading, error, startPlayback]);
 
   const seek = useCallback((t: number) => {
     if (!wsRef.current || !readyRef.current) return;

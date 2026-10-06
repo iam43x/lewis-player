@@ -240,6 +240,7 @@ export default function Home() {
                 <TrackPlayer
                   src={selectedTrack.yandexUrl || selectedTrack.localUrl || `audio/${selectedTrack.id}.mp3`}
                   title={selectedTrack.title}
+                  startMs={selectedTrack.start}
                   hasText={hasText}
                   textOpen={showTranscript}
                   onToggleText={toggleTranscript}

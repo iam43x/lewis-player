@@ -7,6 +7,8 @@ export interface TrackItem {
   text?: string;
   status: "pending" | "ready" | "error";
   error?: string;
+  /** Skip intro: playback starts here (milliseconds). Seek back to 0 is still allowed. */
+  start?: number;
 }
 
 export interface WorkItem {
