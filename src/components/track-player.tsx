@@ -19,6 +19,7 @@ export interface TrackPlayerHandle {
   toggle: () => void;
   play: () => void;
   seek: (seconds: number) => void;
+  skip: (delta: number) => void;
 }
 
 interface TrackPlayerProps {
@@ -27,7 +28,6 @@ interface TrackPlayerProps {
   hasText: boolean;
   textOpen: boolean;
   onToggleText: () => void;
-  onPlayingChange: (playing: boolean) => void;
   onProgress: (cur: number, dur: number) => void;
   handleRef: React.RefObject<TrackPlayerHandle | null>;
   playNonce: number;
@@ -39,7 +39,6 @@ export function TrackPlayer({
   hasText,
   textOpen,
   onToggleText,
-  onPlayingChange,
   onProgress,
   handleRef,
   playNonce,
@@ -58,8 +57,6 @@ export function TrackPlayer({
 
   const c = useColors();
 
-  const onPlayingChangeRef = useRef(onPlayingChange);
-  onPlayingChangeRef.current = onPlayingChange;
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
 
@@ -76,7 +73,6 @@ export function TrackPlayer({
     setCurTime(0);
     setDur(0);
     setPlaying(false);
-    onPlayingChangeRef.current(false);
     onProgressRef.current(0, 0);
 
     const ws = WaveSurfer.create({
@@ -110,18 +106,11 @@ export function TrackPlayer({
       setCurTime(t);
       onProgressRef.current(t, ws.getDuration());
     });
-    ws.on("play", () => {
-      setPlaying(true);
-      onPlayingChangeRef.current(true);
-    });
-    ws.on("pause", () => {
-      setPlaying(false);
-      onPlayingChangeRef.current(false);
-    });
+    ws.on("play", () => setPlaying(true));
+    ws.on("pause", () => setPlaying(false));
     ws.on("finish", () => {
       setPlaying(false);
       setCurTime(0);
-      onPlayingChangeRef.current(false);
       onProgressRef.current(0, ws.getDuration());
     });
     ws.on("error", () => {
@@ -180,12 +169,17 @@ export function TrackPlayer({
     wsRef.current.setTime(Math.max(0, t));
   }, []);
 
+  const skip = useCallback((delta: number) => {
+    if (!wsRef.current || !readyRef.current) return;
+    wsRef.current.skip(delta);
+  }, []);
+
   useEffect(() => {
-    handleRef.current = { toggle, play, seek };
+    handleRef.current = { toggle, play, seek, skip };
     return () => {
       handleRef.current = null;
     };
-  }, [toggle, play, seek, handleRef]);
+  }, [toggle, play, seek, skip, handleRef]);
 
   const chSpeed = useCallback((s: number) => {
     if (!wsRef.current) return;

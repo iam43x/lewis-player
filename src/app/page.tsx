@@ -19,7 +19,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   const [selectedId, setSelectedId] = useState<string>("");
-  const [playing, setPlaying] = useState(false);
   const [curTime, setCurTime] = useState(0);
   const [dur, setDur] = useState(0);
   const [showTranscript, setShowTranscript] = useState(false);
@@ -90,7 +89,6 @@ export default function Home() {
       setWorkMeta(meta);
       setLoading(true);
       setSelectedId("");
-      setPlaying(false);
       setCurTime(0);
       setDur(0);
       setShowTranscript(false);
@@ -118,7 +116,6 @@ export default function Home() {
     setTracks([]);
     setWorkMeta(null);
     setSelectedId("");
-    setPlaying(false);
     setCurTime(0);
     setDur(0);
     setShowTranscript(false);
@@ -135,12 +132,9 @@ export default function Home() {
   }, [loading, tracks, selectedId]);
 
   const selectTrack = useCallback((track: TrackItem) => {
+    (document.activeElement as HTMLElement | null)?.blur?.();
     setSelectedId(track.id);
     setPlayNonce((n) => n + 1);
-  }, []);
-
-  const handlePlayingChange = useCallback((p: boolean) => {
-    setPlaying(p);
   }, []);
 
   const handleProgress = useCallback((cur: number, d: number) => {
@@ -159,15 +153,30 @@ export default function Home() {
     playerHandleRef.current?.play();
   }, []);
 
-  // Space — play/pause current track
+  // Space — play/pause; ←/→ — seek ±5s
   useEffect(() => {
     if (view !== "work") return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.code !== "Space") return;
       const t = e.target as HTMLElement | null;
-      if (t && t.closest("button, input, textarea, select, [contenteditable='true']")) return;
-      e.preventDefault();
-      playerHandleRef.current?.toggle();
+      const typing =
+        !!t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.tagName === "SELECT" ||
+          t.isContentEditable);
+
+      if (e.code === "Space") {
+        if (typing || t?.closest("button, [role='button']")) return;
+        e.preventDefault();
+        playerHandleRef.current?.toggle();
+        return;
+      }
+
+      if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
+        if (typing) return;
+        e.preventDefault();
+        playerHandleRef.current?.skip(e.code === "ArrowLeft" ? -5 : 5);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -234,7 +243,6 @@ export default function Home() {
                   hasText={hasText}
                   textOpen={showTranscript}
                   onToggleText={toggleTranscript}
-                  onPlayingChange={handlePlayingChange}
                   onProgress={handleProgress}
                   handleRef={playerHandleRef}
                   playNonce={playNonce}
@@ -280,8 +288,6 @@ export default function Home() {
                   <TrackList
                     tracks={tracks}
                     selectedId={selectedId}
-                    playing={playing}
-                    loading={loading}
                     onSelect={selectTrack}
                   />
                 )}
