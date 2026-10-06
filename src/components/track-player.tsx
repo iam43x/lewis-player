@@ -194,9 +194,8 @@ export function TrackPlayer({
   }, []);
 
   return (
-    <div className="px-3 sm:px-6 pt-3 pb-2.5">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-3">
+    <div className="p-3.5 sm:p-4">
+      <div className="flex items-center gap-3">
           <button
             onClick={toggle}
             className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 hover:scale-105 active:scale-95"
@@ -294,7 +293,6 @@ export function TrackPlayer({
             Not able to load audio
           </p>
         )}
-      </div>
     </div>
   );
 }

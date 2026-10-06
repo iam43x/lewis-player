@@ -192,8 +192,8 @@ export default function Home() {
   if (view === "work") {
     return (
       <div className="min-h-screen transition-colors duration-300" style={{ backgroundColor: c.bg }}>
-        <div ref={stickyRef} className="sticky top-0 z-20" style={{ backgroundColor: c.surface }}>
-          <header className="border-b" style={{ borderColor: c.border }}>
+        <div ref={stickyRef} className="sticky top-0 z-20" style={{ backgroundColor: c.bg }}>
+          <header>
             <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 flex items-center gap-2">
               <button
                 onClick={goBack}
@@ -220,18 +220,26 @@ export default function Home() {
           </header>
 
           {selectedTrack && (
-            <div style={{ borderBottom: "1px solid " + c.border }}>
-              <TrackPlayer
-                src={selectedTrack.yandexUrl || selectedTrack.localUrl || `audio/${selectedTrack.id}.mp3`}
-                title={selectedTrack.title}
-                hasText={hasText}
-                textOpen={showTranscript}
-                onToggleText={toggleTranscript}
-                onPlayingChange={handlePlayingChange}
-                onProgress={handleProgress}
-                handleRef={playerHandleRef}
-                playNonce={playNonce}
-              />
+            <div className="max-w-6xl mx-auto px-3 sm:px-6 pb-3">
+              <div
+                className="rounded-2xl overflow-hidden"
+                style={{
+                  backgroundColor: c.surface,
+                  border: "1px solid " + c.border,
+                }}
+              >
+                <TrackPlayer
+                  src={selectedTrack.yandexUrl || selectedTrack.localUrl || `audio/${selectedTrack.id}.mp3`}
+                  title={selectedTrack.title}
+                  hasText={hasText}
+                  textOpen={showTranscript}
+                  onToggleText={toggleTranscript}
+                  onPlayingChange={handlePlayingChange}
+                  onProgress={handleProgress}
+                  handleRef={playerHandleRef}
+                  playNonce={playNonce}
+                />
+              </div>
             </div>
           )}
         </div>
