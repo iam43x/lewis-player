@@ -26,7 +26,7 @@ export const TrackList = memo(function TrackList({
             key={track.id}
             role="listitem"
             onClick={() => onSelect(track)}
-            className="group flex items-center gap-3 w-full text-left px-3 sm:px-4 py-3 transition-colors"
+            className="group flex items-center gap-3 w-full text-left px-3 sm:px-4 py-3 transition-all duration-300 hover:scale-[1.01]"
             style={{
               backgroundColor: isActive ? c.accentSoft : "transparent",
               borderBottom: i < tracks.length - 1 ? "1px solid " + c.border : undefined,

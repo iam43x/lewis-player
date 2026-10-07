@@ -14,14 +14,61 @@
 @keyframes sheet-up {
   from {
     transform: translateY(100%);
+    opacity: 0.5;
   }
   to {
     transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-down {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0.5;
   }
 }
 
 .animate-sheet {
-  animation: sheet-up 0.25s ease-out;
+  animation: sheet-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-sheet-out {
+  animation: sheet-down 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes sidebar-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes sidebar-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+
+.animate-sidebar-in {
+  animation: sidebar-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-sidebar-out {
+  animation: sidebar-out 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 @layer base {

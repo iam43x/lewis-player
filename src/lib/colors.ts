@@ -5,9 +5,13 @@ import { useEffect, useCallback, useSyncExternalStore } from "react";
 // Shared theme state via module-level store + useSyncExternalStore
 const THEME_EVENT = "theme-change";
 
+let currentTheme: "dark" | "light" | null = null;
+
 function getThemeSnapshot(): "dark" | "light" {
     if (typeof window === "undefined") return "dark";
-    return (localStorage.getItem("theme") as "dark" | "light") || "dark";
+    if (currentTheme) return currentTheme;
+    currentTheme = (localStorage.getItem("theme") as "dark" | "light") || "dark";
+    return currentTheme;
 }
 
 function getServerSnapshot(): "dark" | "light" {
@@ -34,8 +38,8 @@ export function useColors() {
     }, [theme, isDark, accentMuted]);
 
     const toggle = useCallback(() => {
-        const current = getThemeSnapshot();
-        const next = current === "dark" ? "light" : "dark";
+        const next = getThemeSnapshot() === "dark" ? "light" : "dark";
+        currentTheme = next;
         localStorage.setItem("theme", next);
         window.dispatchEvent(new Event(THEME_EVENT));
     }, []);

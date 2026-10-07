@@ -10,6 +10,24 @@ import { useColors } from "@/lib/colors";
 import worksData from "../../public/data/index.json";
 import type { TrackItem, WorkItem } from "@/lib/types";
 
+function ThemeToggle() {
+  const c = useColors();
+  return (
+    <button
+      onClick={c.toggle}
+      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors hover:opacity-80"
+      style={{ backgroundColor: c.chrome }}
+      aria-label="Toggle theme"
+    >
+      {c.isDark ? (
+        <Sun className="w-4 h-4" style={{ color: c.text }} />
+      ) : (
+        <Moon className="w-4 h-4" style={{ color: c.text }} />
+      )}
+    </button>
+  );
+}
+
 export default function Home() {
   const [view, setView] = useState<"library" | "work">("library");
   const [activeWork, setActiveWork] = useState<string>("");
@@ -22,13 +40,39 @@ export default function Home() {
   const [curTime, setCurTime] = useState(0);
   const [dur, setDur] = useState(0);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [closingTranscript, setClosingTranscript] = useState(false);
   const [playNonce, setPlayNonce] = useState(0);
   const [stickyH, setStickyH] = useState(0);
 
   const playerHandleRef = useRef<TrackPlayerHandle | null>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const durRef = useRef(0);
   durRef.current = dur;
+
+  const cancelTranscriptClose = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    setClosingTranscript(false);
+  }, []);
+
+  const closeTranscript = useCallback(() => {
+    if (closeTimerRef.current || !showTranscript) return;
+    setClosingTranscript(true);
+    closeTimerRef.current = setTimeout(() => {
+      setShowTranscript(false);
+      setClosingTranscript(false);
+      closeTimerRef.current = null;
+    }, 250);
+  }, [showTranscript]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   const c = useColors();
 
@@ -37,13 +81,10 @@ export default function Home() {
     [tracks, selectedId]
   );
 
-  const lines = useMemo(() => {
+  const hasText = useMemo(() => {
     const t = selectedTrack?.text;
-    if (!t) return [];
-    return t.split("\n").filter((l) => l.trim().length > 0);
+    return Array.isArray(t) && t.length > 0;
   }, [selectedTrack?.text]);
-
-  const hasText = lines.length > 0;
 
   useEffect(() => {
     const wl = worksData as WorkItem[];
@@ -91,6 +132,7 @@ export default function Home() {
       setSelectedId("");
       setCurTime(0);
       setDur(0);
+      cancelTranscriptClose();
       setShowTranscript(false);
       setPlayNonce(0);
       window.location.hash = `#/${id}`;
@@ -106,7 +148,7 @@ export default function Home() {
           setLoading(false);
         });
     },
-    [worksList]
+    [worksList, cancelTranscriptClose]
   );
 
   const goBack = useCallback(() => {
@@ -118,11 +160,12 @@ export default function Home() {
     setSelectedId("");
     setCurTime(0);
     setDur(0);
+    cancelTranscriptClose();
     setShowTranscript(false);
     setPlayNonce(0);
     window.location.hash = "";
     window.scrollTo(0, 0);
-  }, []);
+  }, [cancelTranscriptClose]);
 
   // Auto-select first track when the list loads
   useEffect(() => {
@@ -143,15 +186,27 @@ export default function Home() {
   }, []);
 
   const toggleTranscript = useCallback(() => {
-    setShowTranscript((s) => !s);
-  }, []);
+    if (closeTimerRef.current) {
+      cancelTranscriptClose();
+      return;
+    }
+    if (showTranscript) closeTranscript();
+    else setShowTranscript(true);
+  }, [showTranscript, closeTranscript, cancelTranscriptClose]);
 
-  const handleSeekLine = useCallback((index: number, total: number) => {
-    const d = durRef.current;
-    if (!d || total <= 0) return;
-    playerHandleRef.current?.seek((index / total) * d);
+  const handleSeekMs = useCallback((ms: number) => {
+    playerHandleRef.current?.seek(Math.max(0, ms) / 1000);
     playerHandleRef.current?.play();
   }, []);
+
+  // Auto-advance to the next track when the current one finishes
+  const handleTrackFinish = useCallback(() => {
+    const idx = tracks.findIndex((t) => t.id === selectedId);
+    if (idx === -1 || idx >= tracks.length - 1) return;
+    const next = tracks[idx + 1];
+    setSelectedId(next.id);
+    setPlayNonce((n) => n + 1);
+  }, [tracks, selectedId]);
 
   // Space — play/pause; ←/→ — seek ±5s
   useEffect(() => {
@@ -181,21 +236,6 @@ export default function Home() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [view]);
-
-  const ThemeToggle = () => (
-    <button
-      onClick={c.toggle}
-      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors hover:opacity-80"
-      style={{ backgroundColor: c.chrome }}
-      aria-label="Toggle theme"
-    >
-      {c.isDark ? (
-        <Sun className="w-4 h-4" style={{ color: c.text }} />
-      ) : (
-        <Moon className="w-4 h-4" style={{ color: c.text }} />
-      )}
-    </button>
-  );
 
   // Work player view
   if (view === "work") {
@@ -238,13 +278,14 @@ export default function Home() {
                 }}
               >
                 <TrackPlayer
-                  src={selectedTrack.yandexUrl || selectedTrack.localUrl || `audio/${selectedTrack.id}.mp3`}
+                  src={selectedTrack.localUrl || `audio/${selectedTrack.id}.mp3`}
                   title={selectedTrack.title}
                   startMs={selectedTrack.start}
                   hasText={hasText}
                   textOpen={showTranscript}
                   onToggleText={toggleTranscript}
                   onProgress={handleProgress}
+                  onFinish={handleTrackFinish}
                   handleRef={playerHandleRef}
                   playNonce={playNonce}
                 />
@@ -256,18 +297,6 @@ export default function Home() {
         <main className="max-w-6xl mx-auto px-0 sm:px-6 py-4 sm:py-6">
           <div className="flex gap-6 items-start">
             <div className="flex-1 min-w-0">
-              <div className="px-3 sm:px-4 mb-2 flex items-baseline justify-between">
-                <h3
-                  className="text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: c.textSoft }}
-                >
-                  Tracks
-                </h3>
-                <span className="text-xs" style={{ color: c.textSoft }}>
-                  {tracks.length}
-                </span>
-              </div>
-
               <div
                 className="overflow-hidden sm:rounded-2xl"
                 style={{ backgroundColor: c.surface, border: "1px solid " + c.border }}
@@ -295,15 +324,18 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Desktop transcript sidebar */}
-            <aside
-              className="hidden lg:block w-[340px] xl:w-[380px] shrink-0 sticky"
-              style={{
-                top: stickyH + 16,
-                maxHeight: `calc(100vh - ${stickyH + 32}px)`,
-              }}
-            >
-              {showTranscript && selectedTrack ? (
+            {/* Desktop transcript sidebar — appears when Text is pressed, list shifts left */}
+            {showTranscript && selectedTrack && (
+              <aside
+                className={
+                  "hidden lg:block w-[640px] xl:w-[760px] shrink-0 sticky " +
+                  (closingTranscript ? "animate-sidebar-out" : "animate-sidebar-in")
+                }
+                style={{
+                  top: stickyH + 16,
+                  maxHeight: `calc(100vh - ${stickyH + 32}px)`,
+                }}
+              >
                 <div
                   className="flex flex-col rounded-2xl overflow-hidden"
                   style={{
@@ -325,7 +357,7 @@ export default function Home() {
                       </p>
                     </div>
                     <button
-                      onClick={() => setShowTranscript(false)}
+                      onClick={closeTranscript}
                       className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors hover:opacity-80"
                       style={{ backgroundColor: c.chrome }}
                       aria-label="Close text panel"
@@ -338,29 +370,16 @@ export default function Home() {
                     style={{ minHeight: "200px", scrollbarWidth: "thin" }}
                   >
                     <TranscriptPanel
-                      lines={lines}
+                      text={selectedTrack?.text}
                       roles={workMeta?.roles}
                       curTime={curTime}
                       dur={dur}
-                      onSeekLine={handleSeekLine}
+                      onSeekMs={handleSeekMs}
                     />
                   </div>
                 </div>
-              ) : (
-                <button
-                  onClick={() => setShowTranscript(true)}
-                  disabled={!hasText}
-                  className="w-full rounded-2xl px-4 py-3 text-sm font-medium transition-colors disabled:opacity-50"
-                  style={{
-                    backgroundColor: c.surface,
-                    border: "1px solid " + c.border,
-                    color: c.textSoft,
-                  }}
-                >
-                  Open text
-                </button>
-              )}
-            </aside>
+              </aside>
+            )}
           </div>
         </main>
 
@@ -370,14 +389,17 @@ export default function Home() {
             <div
               className="fixed inset-0 z-40 lg:hidden"
               style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-              onClick={() => setShowTranscript(false)}
+              onClick={closeTranscript}
               aria-hidden
             />
             <div
-              className="fixed inset-x-0 bottom-0 z-50 lg:hidden flex flex-col rounded-t-2xl animate-sheet"
+              className={
+                "fixed inset-x-0 bottom-0 z-50 lg:hidden flex flex-col rounded-t-2xl " +
+                (closingTranscript ? "animate-sheet-out" : "animate-sheet")
+              }
               style={{
                 backgroundColor: c.surface,
-                maxHeight: "75vh",
+                maxHeight: "92vh",
                 borderTop: "1px solid " + c.border,
               }}
               role="dialog"
@@ -400,7 +422,7 @@ export default function Home() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowTranscript(false)}
+                  onClick={closeTranscript}
                   className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                   style={{ backgroundColor: c.chrome }}
                   aria-label="Close text panel"
@@ -413,11 +435,11 @@ export default function Home() {
                 style={{ overscrollBehavior: "contain", scrollbarWidth: "thin" }}
               >
                 <TranscriptPanel
-                  lines={lines}
+                  text={selectedTrack?.text}
                   roles={workMeta?.roles}
                   curTime={curTime}
                   dur={dur}
-                  onSeekLine={handleSeekLine}
+                  onSeekMs={handleSeekMs}
                 />
               </div>
             </div>

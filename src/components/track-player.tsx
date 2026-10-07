@@ -31,6 +31,7 @@ interface TrackPlayerProps {
   textOpen: boolean;
   onToggleText: () => void;
   onProgress: (cur: number, dur: number) => void;
+  onFinish: () => void;
   handleRef: React.RefObject<TrackPlayerHandle | null>;
   playNonce: number;
 }
@@ -43,6 +44,7 @@ export function TrackPlayer({
   textOpen,
   onToggleText,
   onProgress,
+  onFinish,
   handleRef,
   playNonce,
 }: TrackPlayerProps) {
@@ -62,6 +64,8 @@ export function TrackPlayer({
 
   const onProgressRef = useRef(onProgress);
   onProgressRef.current = onProgress;
+  const onFinishRef = useRef(onFinish);
+  onFinishRef.current = onFinish;
   const startMsRef = useRef(startMs ?? 0);
   startMsRef.current = startMs ?? 0;
 
@@ -124,6 +128,7 @@ export function TrackPlayer({
       setPlaying(false);
       setCurTime(0);
       onProgressRef.current(0, ws.getDuration());
+      onFinishRef.current();
     });
     ws.on("error", () => {
       setLoading(false);

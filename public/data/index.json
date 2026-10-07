@@ -61,5 +61,71 @@
       "GIRL 2": "#94a3b8",
       "GG": "#94a3b8"
     }
+  },
+  {
+    "id": "bigcity_intro",
+    "title": "Big City Small World: Intro",
+    "description": "Six short introductions to the characters of Big City Small World — meet Fadi, Johnny, Sarah, Magda, Olivia and Harry.",
+    "episodes": 6,
+    "roles": {
+      "FADI": "#818cf8",
+      "JOHNNY": "#38bdf8",
+      "SARAH": "#fb923c",
+      "MAGDA": "#c084fc",
+      "OLIVIA": "#f87171",
+      "HARRY": "#a3e635"
+    }
+  },
+  {
+    "id": "bigcity_s1",
+    "title": "Big City Small World 1",
+    "description": "Season 1 of Big City Small World — twelve episodes about Fadi, Johnny, Sarah, Magda, Olivia, Harry and their friends in London.",
+    "episodes": 12,
+    "roles": {
+      "All": "#94a3b8",
+      "Fadi": "#818cf8",
+      "Harry": "#a3e635",
+      "Johnny": "#38bdf8",
+      "Magda": "#c084fc",
+      "Olivia": "#f87171",
+      "Sarah": "#fb923c",
+      "Tony": "#f472b6"
+    }
+  },
+  {
+    "id": "bigcity_s2",
+    "title": "Big City Small World 2",
+    "description": "Season 2 of Big City Small World — twelve episodes continuing the lives, jobs and relationships of the friends in London.",
+    "episodes": 12,
+    "roles": {
+      "All": "#94a3b8",
+      "Bindyu": "#34d399",
+      "Carlos": "#facc15",
+      "Fadi": "#818cf8",
+      "Harry": "#a3e635",
+      "Johnny": "#38bdf8",
+      "Magda": "#c084fc",
+      "Olivia": "#f87171",
+      "Sarah": "#fb923c",
+      "Tony": "#f472b6"
+    }
+  },
+  {
+    "id": "bigcity_s3",
+    "title": "Big City Small World 3",
+    "description": "Season 3 of Big City Small World — twelve episodes about new romances, business troubles and life changes for the friends.",
+    "episodes": 12,
+    "roles": {
+      "All": "#94a3b8",
+      "Bindyu": "#34d399",
+      "Carlos": "#facc15",
+      "Fadi": "#818cf8",
+      "Harry": "#a3e635",
+      "Johnny": "#38bdf8",
+      "Magda": "#c084fc",
+      "Olivia": "#f87171",
+      "Sarah": "#fb923c",
+      "Tony": "#f472b6"
+    }
   }
 ]
