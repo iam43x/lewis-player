@@ -10,6 +10,26 @@ import { useColors } from "@/lib/colors";
 import worksData from "../../public/data/index.json";
 import type { TrackItem, WorkItem } from "@/lib/types";
 
+// Keep a visible strip of backdrop above the mobile sheet so the close
+// button and tap-to-dismiss always stay on screen. Mobile browsers (iOS
+// Safari and all WebKit wrappers) report `vh` from the *large* viewport,
+// which is taller than the visible area while the URL bar is expanded.
+const SHEET_TOP_GAP = 56;
+
+function sheetMaxHeight(): string {
+  if (typeof window === "undefined") return `calc(100svh - ${SHEET_TOP_GAP}px)`;
+  const vv = window.visualViewport;
+  const h = vv ? vv.height : window.innerHeight;
+  return `${Math.max(240, Math.round(h - SHEET_TOP_GAP))}px`;
+}
+
+// Sheet drag-to-close: movement past DRAG_CAPTURE_PX starts a drag, and a
+// release past DRAG_CLOSE_PX (or a quick downward flick) closes the sheet.
+const DRAG_CAPTURE_PX = 8;
+const DRAG_CLOSE_PX = 80;
+const DRAG_FLICK_PX = 30;
+const DRAG_FLICK_VEL = 0.4; // px per ms
+
 function ThemeToggle() {
   const c = useColors();
   return (
@@ -43,10 +63,25 @@ export default function Home() {
   const [closingTranscript, setClosingTranscript] = useState(false);
   const [playNonce, setPlayNonce] = useState(0);
   const [stickyH, setStickyH] = useState(0);
+  const [sheetMaxH, setSheetMaxH] = useState<string>(sheetMaxHeight);
 
   const playerHandleRef = useRef<TrackPlayerHandle | null>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef({
+    active: false,
+    captured: false,
+    startY: 0,
+    startDy: 0,
+    delta: 0,
+    lastY: 0,
+    lastT: 0,
+    vel: 0,
+  });
+  const springTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragListenersRef = useRef<(() => void) | null>(null);
+  const suppressClickRef = useRef(false);
   const durRef = useRef(0);
   durRef.current = dur;
 
@@ -58,21 +93,166 @@ export default function Home() {
     setClosingTranscript(false);
   }, []);
 
-  const closeTranscript = useCallback(() => {
-    if (closeTimerRef.current || !showTranscript) return;
-    setClosingTranscript(true);
-    closeTimerRef.current = setTimeout(() => {
-      setShowTranscript(false);
-      setClosingTranscript(false);
-      closeTimerRef.current = null;
-    }, 250);
-  }, [showTranscript]);
+  const startSheetClose = useCallback(
+    (animateSheet: boolean) => {
+      if (closeTimerRef.current || !showTranscript) return;
+      const el = sheetRef.current;
+      if (el && animateSheet) {
+        el.style.animation = "sheet-down 0.28s cubic-bezier(0.4, 0, 1, 1) forwards";
+      }
+      setClosingTranscript(true);
+      closeTimerRef.current = setTimeout(() => {
+        setShowTranscript(false);
+        setClosingTranscript(false);
+        closeTimerRef.current = null;
+      }, 250);
+    },
+    [showTranscript]
+  );
+
+  const closeTranscript = useCallback(() => startSheetClose(true), [startSheetClose]);
+
+  const onSheetPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (closeTimerRef.current || dragRef.current.active) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const el = sheetRef.current;
+      if (!el) return;
+
+      const startY = e.clientY;
+      const d = dragRef.current;
+      d.active = true;
+      d.captured = false;
+      d.startY = startY;
+      d.startDy = 0;
+      d.delta = 0;
+      d.lastY = startY;
+      d.lastT = performance.now();
+      d.vel = 0;
+      suppressClickRef.current = false;
+
+      if (springTimerRef.current) {
+        clearTimeout(springTimerRef.current);
+        springTimerRef.current = null;
+      }
+
+      // Styles are only touched once the pointer actually moves past the
+      // capture distance, so a plain tap on the close button still clicks.
+      const onMove = (ev: PointerEvent) => {
+        if (!dragRef.current.active) return;
+        const rawDelta = ev.clientY - d.startY;
+        if (!d.captured) {
+          if (Math.abs(rawDelta) <= DRAG_CAPTURE_PX) return;
+          // Rebase on the live position in case a spring-back was running.
+          const cs = window.getComputedStyle(el);
+          let baseDy = 0;
+          if (cs.transform && cs.transform !== "none") {
+            try {
+              baseDy = new DOMMatrixReadOnly(cs.transform).m42;
+            } catch {
+              baseDy = 0;
+            }
+          }
+          el.style.transition = "none";
+          el.style.animation = "none";
+          el.style.transform = `translateY(${baseDy}px)`;
+          el.style.opacity = cs.opacity;
+          el.style.willChange = "transform";
+          d.captured = true;
+          d.startDy = baseDy;
+          d.startY = ev.clientY;
+          d.delta = 0;
+          d.lastY = ev.clientY;
+          d.lastT = performance.now();
+          d.vel = 0;
+          return;
+        }
+        let dy = d.startDy + (ev.clientY - d.startY);
+        if (dy < 0) dy = Math.max(dy * 0.2, -40);
+        d.delta = ev.clientY - d.startY;
+        const now = performance.now();
+        const dt = now - d.lastT;
+        if (dt >= 16) {
+          d.vel = (ev.clientY - d.lastY) / dt;
+          d.lastY = ev.clientY;
+          d.lastT = now;
+        }
+        el.style.transform = `translateY(${dy}px)`;
+        el.style.opacity = String(Math.min(1, Math.max(0.5, 1 - dy / 300)));
+      };
+
+      const finish = () => {
+        if (dragListenersRef.current) {
+          dragListenersRef.current();
+          dragListenersRef.current = null;
+        }
+        if (!dragRef.current.active) return;
+        dragRef.current.active = false;
+        if (!d.captured || sheetRef.current !== el) return;
+
+        // Swallow the click that browsers still fire after a small drag that
+        // started on a button (e.g. the close X).
+        suppressClickRef.current = true;
+
+        const delta = d.delta;
+        const vel = d.vel;
+        if (delta > DRAG_CLOSE_PX || (delta > DRAG_FLICK_PX && vel > DRAG_FLICK_VEL)) {
+          el.style.transition = "transform 220ms cubic-bezier(0.4, 0, 1, 1), opacity 220ms linear";
+          el.style.transform = "translateY(100%)";
+          el.style.opacity = "0.5";
+          startSheetClose(false);
+        } else {
+          el.style.transition = "transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 260ms";
+          el.style.transform = "translateY(0)";
+          el.style.opacity = "1";
+          springTimerRef.current = setTimeout(() => {
+            springTimerRef.current = null;
+            if (sheetRef.current !== el || dragRef.current.active || closeTimerRef.current) return;
+            el.style.transition = "";
+            el.style.transform = "";
+            el.style.opacity = "";
+            // Keep animation suppressed: re-enabling the mount class would
+            // replay sheet-up from the top.
+            el.style.animation = "none";
+            el.style.willChange = "";
+          }, 300);
+        }
+      };
+
+      const detach = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", finish);
+        window.removeEventListener("pointercancel", finish);
+      };
+      dragListenersRef.current = detach;
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", finish);
+      window.addEventListener("pointercancel", finish);
+    },
+    [startSheetClose]
+  );
 
   useEffect(() => {
     return () => {
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      if (springTimerRef.current) clearTimeout(springTimerRef.current);
+      if (dragListenersRef.current) dragListenersRef.current();
     };
   }, []);
+
+  // Reset drag machinery when the sheet unmounts (e.g. via goBack)
+  useEffect(() => {
+    if (showTranscript) return;
+    if (springTimerRef.current) {
+      clearTimeout(springTimerRef.current);
+      springTimerRef.current = null;
+    }
+    if (dragListenersRef.current) {
+      dragListenersRef.current();
+      dragListenersRef.current = null;
+    }
+    dragRef.current.active = false;
+  }, [showTranscript]);
 
   const c = useColors();
 
@@ -118,6 +298,23 @@ export default function Home() {
       document.body.style.overflow = "";
     };
   }, [showTranscript, view]);
+
+  // Keep the mobile sheet inside the *visible* viewport: browser chrome
+  // (URL bar) shrinks the visual viewport, so re-measure while it's open.
+  useEffect(() => {
+    if (!showTranscript) return;
+    const upd = () => setSheetMaxH(sheetMaxHeight());
+    upd();
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", upd);
+    vv?.addEventListener("scroll", upd);
+    window.addEventListener("resize", upd);
+    return () => {
+      vv?.removeEventListener("resize", upd);
+      vv?.removeEventListener("scroll", upd);
+      window.removeEventListener("resize", upd);
+    };
+  }, [showTranscript]);
 
   const openWork = useCallback(
     (id: string, wl?: WorkItem[]) => {
@@ -191,7 +388,10 @@ export default function Home() {
       return;
     }
     if (showTranscript) closeTranscript();
-    else setShowTranscript(true);
+    else {
+      setSheetMaxH(sheetMaxHeight());
+      setShowTranscript(true);
+    }
   }, [showTranscript, closeTranscript, cancelTranscriptClose]);
 
   const handleSeekMs = useCallback((ms: number) => {
@@ -393,21 +593,30 @@ export default function Home() {
               aria-hidden
             />
             <div
+              ref={sheetRef}
               className={
                 "fixed inset-x-0 bottom-0 z-50 lg:hidden flex flex-col rounded-t-2xl " +
                 (closingTranscript ? "animate-sheet-out" : "animate-sheet")
               }
               style={{
                 backgroundColor: c.surface,
-                maxHeight: "92vh",
+                maxHeight: sheetMaxH,
                 borderTop: "1px solid " + c.border,
               }}
               role="dialog"
               aria-label="Track text"
             >
               <div
-                className="relative flex items-center justify-between gap-2 px-4 pt-4 pb-3 border-b shrink-0"
-                style={{ borderColor: c.border }}
+                onPointerDown={onSheetPointerDown}
+                onClickCapture={(e) => {
+                  if (suppressClickRef.current) e.stopPropagation();
+                }}
+                className="relative flex items-center justify-between gap-2 px-4 pt-4 pb-3 border-b shrink-0 cursor-grab active:cursor-grabbing touch-none select-none"
+                style={{
+                  borderColor: c.border,
+                  paddingLeft: "max(1rem, env(safe-area-inset-left))",
+                  paddingRight: "max(1rem, env(safe-area-inset-right))",
+                }}
               >
                 <div
                   className="absolute left-1/2 -translate-x-1/2 top-1.5 w-8 h-1 rounded-full"
